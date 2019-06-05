@@ -29,11 +29,26 @@ for arg in args:
 def anyIn(flags, test): # Checks if any elements of test are in the set of flags
 	return not not flags.intersection(test)
 
+def processLine(flags, line, prevEmpty, lineNum): # Returns a tuple of (finalLine, empty?, print?)
+	# -v flag is not implemented
+	thisEmpty = line == ''
+	if anyIn(flags, "AeE"):
+		line += "$"
+	if anyIn(flags, "AtT"):
+		line = line.replace("\t", "^I")
+	if anyIn(flags, "b"):
+		if line: line = str(lineNum).rjust(6) + " " + line
+	elif anyIn(flags, "n"):
+		line = str(lineNum).rjust(6) + "\t" + line
+	toPrint = not anyIn(flags, "s") or (not thisEmpty or not prevEmpty)
+	# line has no trailing newline at the end
+	return (line, thisEmpty, toPrint)
+
 if not noFiles: # Flags are processed after all input is provided
 	ret = ""
 	for arg in args:
 		if arg[0] == "-":
-			if arg == '':
+			if arg == '-':
 				ret += sys.stdin.read()
 		else:
 			with open(arg) as file:
@@ -42,48 +57,20 @@ if not noFiles: # Flags are processed after all input is provided
 	lineNum = 1
 	prevEmpty = False
 	for line in ret.splitlines(): # Note that these do not include trailing newlines
-		# -v flag is not implemented
-		thisEmpty = not bool(line) # Check whether the line is empty
-		if anyIn(flags, "AeE"):
-			line += "$"
-		if anyIn(flags, "AtT"):
-			line = line.replace("\t", "^I")
-		if anyIn(flags, "b"):
-			if line: line = str(lineNum).rjust(6) + " " + line
-		elif anyIn(flags, "n"):
-			line = str(lineNum).rjust(6) + "\t" + line
-		if anyIn(flags, "s"):
-			if not thisEmpty or not prevEmpty:
-				final += line + '\n'
-				lineNum += 1
-		else:
-			final += line + '\n'
+		finalLine, prevEmpty, toPrint = processLine(flags, line, prevEmpty, lineNum)
+		if toPrint:
+			final += finalLine + '\n'
 			lineNum += 1
-		prevEmpty = thisEmpty
 	print(final, end='')
 else:
 	# Note that flags take effect in real-time when no file arguments are provided
 	lineNum = 1
 	prevEmpty = False
 	for line in sys.stdin: # Note that these include trailing newlines
-		# -v flag is not implemented
-		thisEmpty = line == '\n'
-		if anyIn(flags, "AeE"):
-			line += "$"
-		if anyIn(flags, "AtT"):
-			line = line.replace("\t", "^I")
-		if anyIn(flags, "b"):
-			if line: line = str(lineNum).rjust(6) + " " + line
-		elif anyIn(flags, "n"):
-			line = str(lineNum).rjust(6) + "\t" + line
-		if anyIn(flags, "s"):
-			if not thisEmpty or not prevEmpty:
-				print(line, end='')
-				lineNum += 1
-		else:
-			print(line, end='')
+		finalLine, prevEmpty, toPrint = processLine(flags, line[:-1], prevEmpty, lineNum)
+		if toPrint:
+			print(finalLine)
 			lineNum += 1
-		prevEmpty = thisEmpty
 		# print("empty:", prevEmpty, "line:", repr(line), ":::")
 
 	# while 1: print(input()) <- Ends with EOFError
