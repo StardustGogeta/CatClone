@@ -1,12 +1,90 @@
 #!/usr/bin/env python3
 import sys
-# print("Hello world!")
 args = sys.argv[1:]
-if args:
+flags = set()
+longFlags = {"show-all": "vET", "number-nonblank": "b", "show-ends": "E",
+		"number": "n", "squeeze-blank": "s", "show-tabs": "T", "show-nonprinting": "v"}
+noFiles = True
+for arg in args:
+	if arg[0] != "-":
+		noFiles = False
+	else: # Flag detected
+		# Check if there is more than one dash
+		if len(arg) > 1:
+			if arg[1] == "-":
+				cmd = arg[2:]
+				if cmd == "help":
+					print("Sorry, help is not provided.")
+				elif cmd == "version":
+					print("Version X.X.X - StardustGogeta")
+				else:
+					try:
+						flags.update(longFlags[cmd])
+					except KeyError:
+						print("Unexpected flag: {}".format(cmd))
+						quit()
+			else:
+				flags.update(arg[1:]) # Add all flags provided to the set
+
+def anyIn(flags, test): # Checks if any elements of test are in the set of flags
+	return not not flags.intersection(test)
+
+if not noFiles: # Flags are processed after all input is provided
+	ret = ""
 	for arg in args:
-		# print("Arg: {}".format(arg))
-		with open(arg) as file:
-			for line in file.read().splitlines():
-				print(line)
+		if arg[0] == "-":
+			if arg == '':
+				ret += sys.stdin.read()
+		else:
+			with open(arg) as file:
+				ret += file.read()
+	final = ''
+	lineNum = 1
+	prevEmpty = False
+	for line in ret.splitlines(): # Note that these do not include trailing newlines
+		# -v flag is not implemented
+		thisEmpty = not bool(line) # Check whether the line is empty
+		if anyIn(flags, "AeE"):
+			line += "$"
+		if anyIn(flags, "AtT"):
+			line = line.replace("\t", "^I")
+		if anyIn(flags, "b"):
+			if line: line = str(lineNum).rjust(6) + " " + line
+		elif anyIn(flags, "n"):
+			line = str(lineNum).rjust(6) + "\t" + line
+		if anyIn(flags, "s"):
+			if not thisEmpty or not prevEmpty:
+				final += line + '\n'
+				lineNum += 1
+		else:
+			final += line + '\n'
+			lineNum += 1
+		prevEmpty = thisEmpty
+	print(final, end='')
 else:
-	print(sys.stdin.read(), end='')
+	# Note that flags take effect in real-time when no file arguments are provided
+	lineNum = 1
+	prevEmpty = False
+	for line in sys.stdin: # Note that these include trailing newlines
+		# -v flag is not implemented
+		thisEmpty = line == '\n'
+		if anyIn(flags, "AeE"):
+			line += "$"
+		if anyIn(flags, "AtT"):
+			line = line.replace("\t", "^I")
+		if anyIn(flags, "b"):
+			if line: line = str(lineNum).rjust(6) + " " + line
+		elif anyIn(flags, "n"):
+			line = str(lineNum).rjust(6) + "\t" + line
+		if anyIn(flags, "s"):
+			if not thisEmpty or not prevEmpty:
+				print(line, end='')
+				lineNum += 1
+		else:
+			print(line, end='')
+			lineNum += 1
+		prevEmpty = thisEmpty
+		# print("empty:", prevEmpty, "line:", repr(line), ":::")
+
+	# while 1: print(input()) <- Ends with EOFError
+	#print(sys.stdin.read(), end='') <- Doesn't read lines until EOF is found
