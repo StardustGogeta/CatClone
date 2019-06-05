@@ -1,0 +1,7 @@
+/.cache
+.bash_logout
+.bashrc
+.profile
+.sudo_as_admin_successful
+.viminfo
+.gitconfig
