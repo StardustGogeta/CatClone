@@ -1,0 +1,12 @@
+#!/usr/bin/env python3
+import sys
+# print("Hello world!")
+args = sys.argv[1:]
+if args:
+	for arg in args:
+		# print("Arg: {}".format(arg))
+		with open(arg) as file:
+			for line in file.read().splitlines():
+				print(line)
+else:
+	print(sys.stdin.read(), end='')
